@@ -1,5 +1,6 @@
 import React from "react";
 import "./style.css";
+import { getTeamsRequest } from "./middleware";
 
 type Team = {
   id: string;
@@ -15,6 +16,13 @@ type Props = {
 };
 
 export function TeamsTable(props: Props) {
+  if (props.loading) {
+    return (
+      <div style={{ minHeight: "100px" }} className="loading-mask">
+        Loading... please wait
+      </div>
+    );
+  }
   return (
     <form id="editForm" action="" method="post" className={props.loading ? "loading-mask" : ""}>
       <table>
@@ -110,28 +118,13 @@ export class TeamsTableWrapper extends React.Component<WrapperProps, State> {
     };
   }
 
-  componentDidMount(): void {
-    setTimeout(() => {
-      this.setState({
-        loading: false,
-        teams: [
-          {
-            id: "toze8j1610313009673",
-            promotion: "html",
-            members: "Nicolae Matei, HTML",
-            name: "Web Presentation",
-            url: "https://github.com/nmatei/web-intro-presentation"
-          },
-          {
-            id: "ezabnf1630345987541",
-            promotion: "css",
-            members: "Nicolae",
-            name: "Names",
-            url: "https://github.com/nmatei/nmatei.github.io"
-          }
-        ]
-      });
-    }, 2000);
+  async componentDidMount(): Promise<void> {
+    const teams = await getTeamsRequest();
+
+    this.setState({
+      loading: false,
+      teams: teams
+    });
   }
 
   render() {
