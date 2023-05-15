@@ -1,6 +1,8 @@
+/* eslint-disable react/jsx-no-target-blank */
+/* eslint-disable jsx-a11y/anchor-is-valid */
 import React from "react";
 import "./style.css";
-import { getTeamsRequest } from "./middleware";
+import { deleteTeamRequest, getTeamsRequest } from "./middleware";
 
 type Team = {
   id: string;
@@ -15,7 +17,11 @@ type Props = {
   teams: Team[];
 };
 
-export function TeamsTable(props: Props) {
+type Actions = {
+  deleteTeam(id: string): void;
+};
+
+export function TeamsTable(props: Props & Actions) {
   if (props.loading) {
     return (
       <div style={{ minHeight: "100px" }} className="loading-mask">
@@ -66,10 +72,16 @@ export function TeamsTable(props: Props) {
                   </a>
                 </td>
                 <td>
-                  <a data-id={"id"} className="link-btn remove-btn">
+                  <a
+                    data-id={id}
+                    className="link-btn remove-btn"
+                    onClick={() => {
+                      props.deleteTeam(id);
+                    }}
+                  >
                     ✖
                   </a>
-                  <a data-id={"id"} className="link-btn edit-btn">
+                  <a data-id={id} className="link-btn edit-btn">
                     &#9998;
                   </a>
                 </td>
@@ -119,6 +131,10 @@ export class TeamsTableWrapper extends React.Component<WrapperProps, State> {
   }
 
   async componentDidMount(): Promise<void> {
+    this.loadTeams();
+  }
+
+  async loadTeams() {
     const teams = await getTeamsRequest();
 
     this.setState({
@@ -128,6 +144,17 @@ export class TeamsTableWrapper extends React.Component<WrapperProps, State> {
   }
 
   render() {
-    return <TeamsTable teams={this.state.teams} loading={this.state.loading} />;
+    return (
+      <TeamsTable
+        teams={this.state.teams}
+        loading={this.state.loading}
+        deleteTeam={async id => {
+          console.warn("todo please remove", id);
+          const status = await deleteTeamRequest(id);
+          console.warn("status", status);
+          this.loadTeams();
+        }}
+      />
+    );
   }
 }
