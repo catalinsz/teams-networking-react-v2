@@ -15,10 +15,13 @@ type Team = {
 type Props = {
   loading: boolean;
   teams: Team[];
+  team: Team;
 };
 
 type Actions = {
   deleteTeam(id: string): void;
+  save(): void;
+  inputChange(name: string, value: string);
 };
 
 export function TeamsTable(props: Props & Actions) {
@@ -30,7 +33,16 @@ export function TeamsTable(props: Props & Actions) {
     );
   }
   return (
-    <form id="editForm" action="" method="post" className={props.loading ? "loading-mask" : ""}>
+    <form
+      id="editForm"
+      action=""
+      method="post"
+      className={props.loading ? "loading-mask" : ""}
+      onSubmit={e => {
+        e.preventDefault();
+        props.save();
+      }}
+    >
       <table>
         <colgroup>
           <col span={1} style={{ width: "40px" }} />
@@ -93,16 +105,52 @@ export function TeamsTable(props: Props & Actions) {
           <tr>
             <td></td>
             <td>
-              <input type="text" name="promotion" id="promotion" placeholder={"Enter Promotion"} required />
+              <input
+                type="text"
+                name="promotion"
+                placeholder={"Enter Promotion"}
+                required
+                value={props.team.promotion}
+                onChange={e => {
+                  props.inputChange("promotion", e.target.value);
+                }}
+              />
             </td>
             <td>
-              <input type="text" name="members" id="members" placeholder={"Enter members"} required />
+              <input
+                type="text"
+                name="members"
+                placeholder={"Enter members"}
+                required
+                value={props.team.members}
+                onChange={e => {
+                  props.inputChange("members", e.target.value);
+                }}
+              />
             </td>
             <td>
-              <input type="text" name="name" id="name" placeholder={"Enter project name"} required />
+              <input
+                type="text"
+                name="name"
+                placeholder={"Enter project name"}
+                required
+                value={props.team.name}
+                onChange={e => {
+                  props.inputChange("name", e.target.value);
+                }}
+              />
             </td>
             <td>
-              <input type="text" name="url" id="url" placeholder={"Enter URL"} required />
+              <input
+                type="text"
+                name="url"
+                placeholder={"Enter URL"}
+                required
+                value={props.team.url}
+                onChange={e => {
+                  props.inputChange("url", e.target.value);
+                }}
+              />
             </td>
             <td>
               <button type="submit">💾</button>
@@ -119,6 +167,7 @@ type WrapperProps = {};
 type State = {
   loading: boolean;
   teams: Team[];
+  team: Team;
 };
 
 export class TeamsTableWrapper extends React.Component<WrapperProps, State> {
@@ -126,7 +175,8 @@ export class TeamsTableWrapper extends React.Component<WrapperProps, State> {
     super(props);
     this.state = {
       loading: true,
-      teams: []
+      teams: [],
+      team: { id: "", name: "", promotion: "", url: "", members: "" }
     };
   }
 
@@ -148,11 +198,26 @@ export class TeamsTableWrapper extends React.Component<WrapperProps, State> {
       <TeamsTable
         teams={this.state.teams}
         loading={this.state.loading}
+        team={this.state.team}
         deleteTeam={async id => {
-          console.warn("todo please remove", id);
           const status = await deleteTeamRequest(id);
           console.warn("status", status);
           this.loadTeams();
+        }}
+        save={() => {
+          const team = {};
+          console.warn("todo pls save", team);
+        }}
+        inputChange={(name: string, value: string) => {
+          console.warn("%o changed to %o", name, value);
+          this.setState(state => {
+            return {
+              team: {
+                ...state.team,
+                promotion: value
+              }
+            };
+          });
         }}
       />
     );
