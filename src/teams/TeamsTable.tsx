@@ -1,37 +1,23 @@
-/* eslint-disable react/jsx-no-target-blank */
-/* eslint-disable jsx-a11y/anchor-is-valid */
 import React from "react";
 import "./style.css";
-import { deleteTeamRequest, getTeamsRequest } from "./middleware";
-
-type Team = {
-  id: string;
-  name: string;
-  promotion: string;
-  url: string;
-  members: string;
-};
+import { createTeamRequest, deleteTeamRequest, getTeamsRequest, updateTeamRequest } from "./middleware";
+import { Team } from "./models";
 
 type Props = {
   loading: boolean;
   teams: Team[];
   team: Team;
 };
-
 type Actions = {
+  //deleteTeam: (id: string) => void;
   deleteTeam(id: string): void;
   save(): void;
-  inputChange(name: string, value: string);
+  inputChange(name: string, value: string): void;
+  startEdit(team: Team): void;
+  reset(): void;
 };
 
 export function TeamsTable(props: Props & Actions) {
-  if (props.loading) {
-    return (
-      <div style={{ minHeight: "100px" }} className="loading-mask">
-        Loading... please wait
-      </div>
-    );
-  }
   return (
     <form
       id="editForm"
@@ -41,6 +27,9 @@ export function TeamsTable(props: Props & Actions) {
       onSubmit={e => {
         e.preventDefault();
         props.save();
+      }}
+      onReset={() => {
+        props.reset();
       }}
     >
       <table>
@@ -65,7 +54,8 @@ export function TeamsTable(props: Props & Actions) {
           </tr>
         </thead>
         <tbody>
-          {props.teams.map(({ id, url, promotion, members, name }) => {
+          {props.teams.map(team => {
+            const { id, url, promotion, members, name } = team;
             let displayURL = url;
             if (url.startsWith("https://")) {
               displayURL = url.substring(8);
@@ -85,15 +75,19 @@ export function TeamsTable(props: Props & Actions) {
                 </td>
                 <td>
                   <a
-                    data-id={id}
-                    className="link-btn remove-btn"
+                    className="link-btn"
                     onClick={() => {
                       props.deleteTeam(id);
                     }}
                   >
                     ✖
                   </a>
-                  <a data-id={id} className="link-btn edit-btn">
+                  <a
+                    className="link-btn"
+                    onClick={() => {
+                      props.startEdit(team);
+                    }}
+                  >
                     &#9998;
                   </a>
                 </td>
@@ -170,56 +164,97 @@ type State = {
   team: Team;
 };
 
+const emptyTeam: Team = {
+  id: "",
+  name: "",
+  promotion: "",
+  url: "",
+  members: ""
+};
+function getEmptyTeam(): Team {
+  // return { ...emptyTeam };
+  return {
+    id: "",
+    name: "",
+    promotion: "",
+    url: "",
+    members: ""
+  };
+}
+
 export class TeamsTableWrapper extends React.Component<WrapperProps, State> {
-  constructor(props) {
+  constructor(props: WrapperProps) {
     super(props);
+    //console.warn("constructor props", props);
     this.state = {
       loading: true,
       teams: [],
-      team: { id: "", name: "", promotion: "", url: "", members: "" }
+      team: getEmptyTeam()
     };
   }
 
-  async componentDidMount(): Promise<void> {
+  componentDidMount(): void {
+    console.info("mount");
     this.loadTeams();
   }
 
   async loadTeams() {
     const teams = await getTeamsRequest();
-
+    console.info("change loading", teams);
     this.setState({
       loading: false,
-      teams: teams
+      teams: teams || []
     });
   }
 
   render() {
+    //console.warn("render");
     return (
       <TeamsTable
         teams={this.state.teams}
         loading={this.state.loading}
         team={this.state.team}
         deleteTeam={async id => {
-          const status = await deleteTeamRequest(id);
-          console.warn("status", status);
+          const { success } = await deleteTeamRequest(id);
+          console.warn("deleted", success);
           this.loadTeams();
         }}
-        save={() => {
+        save={async () => {
+          this.setState({
+            loading: true
+          });
           const team = this.state.team;
-          console.warn("todo pls save", team);
+          let status;
+          if (team.id) {
+            status = await updateTeamRequest(team);
+          } else {
+            status = await createTeamRequest(team);
+          }
+          console.warn("save", status);
+          await this.loadTeams();
+          this.setState({
+            team: getEmptyTeam()
+          });
+        }}
+        startEdit={team => {
+          this.setState({
+            team
+          });
+        }}
+        reset={() => {
+          this.setState({
+            team: getEmptyTeam()
+          });
         }}
         inputChange={(name: string, value: string) => {
-          console.warn("%o changed to %o", name, value);
-          this.setState(state => {
-            console.warn("state", state);
-            const team = {
-              ...state.team
-            };
-            team[name] = value;
-            return {
-              team: team
-            };
-          });
+          // state.team.promotion === state.team["promotion"]
+          //  -> state.team[name]
+          this.setState(state => ({
+            team: {
+              ...state.team,
+              [name]: value
+            }
+          }));
         }}
       />
     );
