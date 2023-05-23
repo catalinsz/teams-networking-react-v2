@@ -18,6 +18,7 @@ type Actions = {
 };
 
 export function TeamsTable(props: Props & Actions) {
+  console.debug("props", props);
   return (
     <form
       id="editForm"
@@ -191,6 +192,16 @@ export class TeamsTableWrapper extends React.Component<WrapperProps, State> {
       teams: [],
       team: getEmptyTeam()
     };
+
+    // const originalSave = this.save;
+    // this.save = async () => {
+    //   originalSave.apply(this);
+    // };
+    this.save = this.save.bind(this);
+    this.deleteTeam = this.deleteTeam.bind(this);
+    this.inputChange = this.inputChange.bind(this);
+    this.startEdit = this.startEdit.bind(this);
+    this.reset = this.reset.bind(this);
   }
 
   componentDidMount(): void {
@@ -207,61 +218,73 @@ export class TeamsTableWrapper extends React.Component<WrapperProps, State> {
     });
   }
 
+  private async deleteTeam(id: string) {
+    this.setState({
+      loading: true
+    });
+    const { success } = await deleteTeamRequest(id);
+    console.warn("deleted", success);
+    this.setState(state => ({
+      loading: false,
+      teams: state.teams.filter(team => team.id !== id)
+    }));
+  }
+
+  private inputChange(name: string, value: string) {
+    // state.team.promotion === state.team["promotion"]
+    //  -> state.team[name]
+    this.setState(state => ({
+      team: {
+        ...state.team,
+        [name]: value
+      }
+    }));
+  }
+
+  private async save() {
+    this.setState({
+      loading: true
+    });
+    const team = this.state.team;
+    let id, status;
+    if (team.id) {
+      status = await updateTeamRequest(team);
+    } else {
+      status = await createTeamRequest(team);
+      id = status.id;
+    }
+    this.setState(state => ({
+      loading: false,
+      teams: team.id ? state.teams.map(t => (t.id === team.id ? { ...team } : t)) : [...state.teams, { ...team, id }],
+      team: getEmptyTeam()
+    }));
+  }
+
+  private startEdit(team: Team) {
+    this.setState({
+      team
+    });
+  }
+
+  private reset() {
+    this.setState({
+      team: getEmptyTeam()
+    });
+  }
+
   render() {
-    //console.warn("render");
+    console.info("render");
+
     return (
       <TeamsTable
         teams={this.state.teams}
         loading={this.state.loading}
         team={this.state.team}
-        deleteTeam={async id => {
-          this.setState(state => ({
-            loading: true
-          }));
-          const { success } = await deleteTeamRequest(id);
-          console.warn("deleted", success);
-          this.setState(state => ({
-            loading: false,
-            teams: this.state.teams.filter(team => team.id !== id)
-          }));
-        }}
-        save={async () => {
-          this.setState({
-            loading: true
-          });
-          const team = this.state.team;
-          let status;
-          if (team.id) {
-            status = await updateTeamRequest(team);
-          } else {
-            status = await createTeamRequest(team);
-          }
-          console.warn("save", status);
-          await this.loadTeams();
-          this.setState({
-            team: getEmptyTeam()
-          });
-        }}
-        startEdit={team => {
-          this.setState({
-            team
-          });
-        }}
-        reset={() => {
-          this.setState({
-            team: getEmptyTeam()
-          });
-        }}
-        inputChange={(name: string, value: string) => {
-          // state.team.promotion === state.team["promotion"]
-          //  -> state.team[name]
-          this.setState(state => ({
-            team: {
-              ...state.team,
-              [name]: value
-            }
-          }));
-        }}
+        deleteTeam={this.deleteTeam}
+        save={this.save}
+        startEdit={this.startEdit}
+        reset={this.reset}
+        inputChange={this.inputChange}
       />
     );
   }
